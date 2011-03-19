@@ -87,6 +87,22 @@ class Variant < ActiveRecord::Base
   def deleted?
     deleted_at
   end
+    
+  def cut
+    option_values.detect {|ov| ov.option_type_id == OptionType.find_by_name('diamond_cut').id}.try(:name)
+  end
+  
+  def cut_presentation
+    option_values.detect {|ov| ov.option_type_id == OptionType.find_by_name('diamond_cut').id}.try(:presentation)
+  end
+  
+  def metal
+    option_values.detect {|ov| ov.option_type_id == OptionType.find_by_name('metal').id}.try(:name)
+  end 
+  
+  def metal_presentation
+    option_values.detect {|ov| ov.option_type_id == OptionType.find_by_name('metal').id}.try(:presentation)
+  end
 
   private
 
