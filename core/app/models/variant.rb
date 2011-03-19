@@ -103,6 +103,10 @@ class Variant < ActiveRecord::Base
   def metal_presentation
     option_values.detect {|ov| ov.option_type_id == OptionType.find_by_name('metal').id}.try(:presentation)
   end
+  
+  def ring_size
+    option_values.detect {|ov| ov.option_type_id == OptionType.find_by_name('ring_size').id}.try(:name)
+  end 
 
   private
 
