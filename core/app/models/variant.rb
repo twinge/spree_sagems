@@ -107,6 +107,18 @@ class Variant < ActiveRecord::Base
   def ring_size
     option_values.detect {|ov| ov.option_type_id == OptionType.find_by_name('ring_size').id}.try(:name)
   end 
+  
+  def carat_presentation
+    option_values.detect {|ov| ov.option_type_id == OptionType.find_by_name('diamond_size').id}.try(:presentation)
+  end 
+  
+  def color
+    option_values.detect {|ov| ov.option_type_id == OptionType.find_by_name('color').id}.try(:presentation)
+  end 
+  
+  def clarity
+    option_values.detect {|ov| ov.option_type_id == OptionType.find_by_name('clarity').id}.try(:presentation)
+  end 
 
   private
 
