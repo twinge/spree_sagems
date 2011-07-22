@@ -36,7 +36,7 @@ module Spree::Search
 
     # method should return new scope based on base_scope
     def get_products_conditions_for(base_scope, query)
-      base_scope.like_any([:name, :description], query.split)
+      base_scope.like_any([:name, :description, :sku], query.split)
     end
 
     def prepare(params)
