@@ -76,6 +76,11 @@ Rails.application.routes.draw do
           post :update_positions
         end
       end
+      resources :app_images do
+        collection do
+          post :update_positions
+        end
+      end
       member do
         get :clone
       end
