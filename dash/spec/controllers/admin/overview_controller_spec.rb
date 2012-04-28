@@ -1,16 +1,16 @@
 require 'spec_helper'
 
-describe Admin::OverviewController do
-  context "#get_report_data" do
-    it "should not allow JSON request without a valid token" do
-      expect {
-        get :get_report_data, {:report => 'orders_totals', :name => "7_days", :format => :js}
-      }.to raise_error ActionController::InvalidAuthenticityToken
-    end
-    it "should allow JSON request with a valid token" do
-      controller.stub :form_authenticity_token => "123456"
-      get :get_report_data, {:report => 'orders_totals', :name => "7_days", :authenticity_token => "123456", :format => :js}
-      response.should be_success
-    end
+describe Spree::Admin::OverviewController do
+
+  before :each do
+    @user = Factory(:admin_user)
+    controller.stub :current_user => @user
   end
+
+  it "sets the locale preference" do
+    Spree::Dash::Config.locale = 'en_EN'
+    spree_get :index, :locale => 'fr_FR'
+    Spree::Dash::Config.locale.should eq 'fr_FR'
+  end
+
 end

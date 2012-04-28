@@ -1,61 +1,143 @@
-require File.dirname(__FILE__) + '/../spec_helper'
+require 'spec_helper'
 
-describe Promotion do
-  let(:promotion) { Promotion.new }
+describe Spree::Promotion do
+  let(:promotion) { Spree::Promotion.new }
 
-  describe "#save" do
-    let(:promotion_valid) { Promotion.new :name => "A promotion", :code => "XXXX" }
-
-    context "when is invalid" do
-      it { promotion.save.should be_false }
+  describe "validations" do
+    before :each do
+      @valid_promotion = Spree::Promotion.new :name => "A promotion",
+                                              :event_name => 'spree.checkout.coupon_code_added',
+                                              :code => 'XXX'
     end
 
-    context "when is valid" do
-      it { promotion_valid.save.should be_true }
+    it "valid_promotion is valid" do
+      @valid_promotion.should be_valid
+    end
+
+    it "validates the coupon code when event is spree.checkout.coupon_code_added" do
+      @valid_promotion.code = nil
+      @valid_promotion.should_not be_valid
+    end
+
+    it "validates the path when event is spree.content.visited" do
+      @valid_promotion.event_name = 'spree.content.visited'
+      @valid_promotion.should_not be_valid
+
+      @valid_promotion.path = 'content/cvv'
+      @valid_promotion.should be_valid
+    end
+
+    it "validates usage limit" do
+      @valid_promotion.usage_limit = -1
+      @valid_promotion.should_not be_valid
+
+      @valid_promotion.usage_limit = 100
+      @valid_promotion.should be_valid
+    end
+
+    it "validates name" do
+      @valid_promotion.name = nil
+      @valid_promotion.should_not be_valid
+    end
+
+  end
+
+  describe ".advertised" do
+    let(:promotion) { Factory(:promotion) }
+    let(:advertised_promotion) { Factory(:promotion, :advertise => true) }
+
+    it "only shows advertised promotions" do
+      advertised = Spree::Promotion.advertised
+      advertised.should include(advertised_promotion)
+      advertised.should_not include(promotion)
     end
   end
 
-  context "creating discounts" do
-    let(:order) { Order.new }
+  describe "#delete" do
+    it "deletes actions" do
+      p = Spree::Promotion.create(:name => "delete me")
+      p.actions << Spree::Promotion::Actions::CreateAdjustment.new
+      p.destroy
 
+      Spree::PromotionAction.count.should == 0
+    end
+
+    it "deletes rules" do
+      p = Spree::Promotion.create(:name => "delete me")
+      p.rules << Spree::Promotion::Rules::FirstOrder.new
+      p.destroy
+
+      Spree::PromotionRule.count.should == 0
+    end
+
+  end
+
+  describe "#activate" do
     before do
-      promotion.calculator = Calculator::FreeShipping.new
+      @action1 = mock_model(Spree::PromotionAction, :perform => true)
+      @action2 = mock_model(Spree::PromotionAction, :perform => true)
+      promotion.promotion_actions = [@action1, @action2]
+      promotion.created_at = 2.days.ago
+
+      @user = stub_model(Spree::User, :email => "spree@example.com")
+      @order = stub_model(Spree::Order, :user => @user, :created_at => DateTime.now)
+      @payload = { :order => @order, :user => @user }
     end
 
-    it "should not create a discount when order is not eligible" do
-      promotion.stub(:eligible? => false)
-      order.stub(:promotion_credit_exists? => nil)
-
-      promotion.create_discount(order)
-      order.promotion_credits.should have(0).item
+    it "should check code if present" do
+      promotion.code = 'XXX'
+      @payload[:coupon_code] = 'XXX'
+      @action1.should_receive(:perform).with(@payload)
+      @action2.should_receive(:perform).with(@payload)
+      promotion.activate(@payload)
     end
 
-    it "should be able to create a discount on order" do
-      order.stub(:promotion_credit_exists? => nil)
-      order.stub(:ship_total => 5, :item_total => 50, :reload => nil)
-      promotion.stub(:code => "PROMO", :eligible? => true)
-      promotion.calculator.stub(:compute => 1000000)
+    it "should check path if present" do
+      promotion.path = 'content/cvv'
+      @payload[:path] = 'content/cvv'
+      @action1.should_receive(:perform).with(@payload)
+      @action2.should_receive(:perform).with(@payload)
+      promotion.activate(@payload)
+    end
 
+    it "does not perform actions against an order in a finalized state" do
+      @action1.should_not_receive(:perform).with(@payload)
 
-      attrs = {:amount => -50, :label => "#{I18n.t(:coupon)} (PROMO)", :source => promotion, :order => order }
-      PromotionCredit.should_receive(:create!).with(attrs)
+      @order.state = 'complete'
+      promotion.activate(@payload)
 
-      promotion.create_discount(order)
+      @order.state = 'awaiting_return'
+      promotion.activate(@payload)
+
+      @order.state = 'returned'
+      promotion.activate(@payload)
+    end
+
+    it "does not activate if newer then order" do
+      @action1.should_not_receive(:perform).with(@payload)
+      promotion.created_at = DateTime.now + 2
+      promotion.activate(@payload)
     end
   end
+
+  context "#usage_limit_exceeded" do
+     it "should not have its usage limit exceeded" do
+       promotion.should_not be_usage_limit_exceeded
+     end
+
+     it "should have its usage limit exceeded" do
+       promotion.usage_limit = 2
+       promotion.stub(:credits_count => 2)
+       promotion.usage_limit_exceeded?.should == true
+
+       promotion.stub(:credits_count => 3)
+       promotion.usage_limit_exceeded?.should == true
+     end
+   end
 
   context "#expired" do
     it "should not be exipired" do
       promotion.should_not be_expired
-    end
-
-    it "should be expired if usage limit is exceeded" do
-      promotion.usage_limit = 2
-      promotion.stub(:credits_count => 2)
-      promotion.should be_expired
-
-      promotion.stub(:credits_count => 3)
-      promotion.should be_expired
     end
 
     it "should be expired if it hasn't started yet" do
@@ -91,8 +173,33 @@ describe Promotion do
     end
   end
 
-  context "eligible?" do
-    before { @order = Order.new }
+  context "#products" do
+    context "when it has product rules with products associated" do
+      let(:promotion) { Factory.create(:promotion) }
+
+      before do
+        promotion_rule = Spree::Promotion::Rules::Product.new
+        promotion_rule.promotion = promotion
+        promotion_rule.products << Factory.create(:product)
+        promotion_rule.save
+      end
+
+      it "should have products" do
+        promotion.products.size.should == 1
+      end
+    end
+  end
+
+  context "#eligible?" do
+    before do
+      @order = Factory(:order)
+      promotion.event_name = 'spree.checkout.coupon_code_added'
+      promotion.name = "Foo"
+      promotion.code = "XXX"
+      calculator = Spree::Calculator::FlatRate.new
+      action_params = { :promotion => promotion, :calculator => calculator }
+      @action = Spree::Promotion::Actions::CreateAdjustment.create(action_params, :without_protection => true)
+    end
 
     context "when it is expired" do
       before { promotion.stub(:expired? => true) }
@@ -101,14 +208,30 @@ describe Promotion do
     end
 
     context "when it is not expired" do
-      before { promotion.stub(:expired? => false) }
+      before { promotion.expires_at = Time.now + 1.day }
 
       specify { promotion.should be_eligible(@order) }
     end
+
+    context "when a coupon code has already resulted in an adjustment on the order" do
+      before do
+        promotion.save!
+
+        @order.adjustments.create({:amount => 1,
+                                  :source => @order,
+                                  :originator => @action,
+                                  :label => "Foo"}, :without_protection => true)
+      end
+
+      it "should be eligible" do
+        promotion.should be_eligible(@order)
+      end
+    end
+
   end
 
   context "rules" do
-    before { @order = Order.new }
+    before { @order = Spree::Order.new }
 
     it "should have eligible rules if there are no rules" do
       promotion.rules_are_eligible?(@order).should be_true
@@ -118,29 +241,34 @@ describe Promotion do
       before { promotion.match_policy = 'all' }
 
       it "should have eligible rules if all rules are eligible" do
-        rule = mock_model(PromotionRule, :eligible? => true)
-        promotion.promotion_rules = [rule, rule.clone]
-
+        promotion.promotion_rules = [mock_model(Spree::PromotionRule, :eligible? => true),
+                                     mock_model(Spree::PromotionRule, :eligible? => true)]
         promotion.rules_are_eligible?(@order).should be_true
       end
 
       it "should not have eligible rules if any of the rules is not eligible" do
-        promotion.promotion_rules = [mock_model(PromotionRule, :eligible? => true),
-                                     mock_model(PromotionRule, :eligible? => false)]
-
+        promotion.promotion_rules = [mock_model(Spree::PromotionRule, :eligible? => true),
+                                     mock_model(Spree::PromotionRule, :eligible? => false)]
         promotion.rules_are_eligible?(@order).should be_false
       end
     end
 
     context "with 'any' match policy" do
-      before { promotion.match_policy = 'any' }
+      before(:each) do
+        @promotion = Spree::Promotion.new(:name => "Promo", :match_policy => 'any')
+        @promotion.save
+      end
 
       it "should have eligible rules if any of the rules is eligible" do
-        promotion.promotion_rules = [mock_model(PromotionRule, :eligible? => true),
-                                     mock_model(PromotionRule, :eligible? => false)]
-
-        promotion.rules_are_eligible?(@order).should be_true
+        true_rule = Spree::PromotionRule.create({:promotion => @promotion}, :without_protection => true)
+        true_rule.stub(:eligible?).and_return(true)
+        false_rule = Spree::PromotionRule.create({:promotion => @promotion}, :without_protection => true)
+        false_rule.stub(:eligible?).and_return(false)
+        @promotion.rules << true_rule
+        @promotion.rules_are_eligible?(@order).should be_true
       end
     end
+
   end
+
 end

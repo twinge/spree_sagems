@@ -1,6 +1,6 @@
-require File.dirname(__FILE__) + '/../spec_helper'
+require 'spec_helper'
 
-describe ShippingCategory do
+describe Spree::ShippingCategory do
 
   context "validations" do
     it { should validate_presence_of(:name) }

@@ -1,3 +1,9 @@
+Authentication
+==============
+
+Provides authentication and authorization services for use with Spree
+
+
 Overview
 --------
 
@@ -13,20 +19,16 @@ and use the spree-auth gem in addition to spree-core in order to restrict access
 functionality.*
 
 
-Running Tests
--------------
+Testing
+-------
 
 You need to do a quick one-time creation of a test application and then you can use it to run the tests.
 
-    rake test_app
+    bundle exec rake test_app
 
 Then run the rspec tests
 
-    rake spec
-
-Then run the cucumber tests
-
-    bundle exec cucumber
+    bundle exec rake spec
 
 Misc
 ----

@@ -1,3 +1,4 @@
+# encoding: UTF-8
 version = File.read(File.expand_path("../SPREE_VERSION",__FILE__)).strip
 
 Gem::Specification.new do |s|
@@ -10,23 +11,18 @@ Gem::Specification.new do |s|
   s.files        = Dir['README.md', 'lib/**/*']
   s.require_path = 'lib'
   s.requirements << 'none'
-
   s.required_ruby_version     = '>= 1.8.7'
   s.required_rubygems_version = ">= 1.3.6"
 
-  s.author            = 'Sean Schofield'
-  s.email             = 'sean@railsdog.com'
-  s.homepage          = 'http://spreecommerce.com'
-  s.rubyforge_project = 'spree'
+  s.author       = 'Sean Schofield'
+  s.email        = 'sean@spreecommerce.com'
+  s.homepage     = 'http://spreecommerce.com'
 
-  #s.bindir             = 'bin'
-  #s.executables        = ['spree']
-  #s.default_executable = 'spree'
-
-  s.add_dependency('spree_core',  version)
-  s.add_dependency('spree_auth', version)
-  s.add_dependency('spree_api', version)
-  s.add_dependency('spree_dash', version)
-  s.add_dependency('spree_sample', version)
-  s.add_dependency('spree_promo', version)
+  s.add_dependency 'spree_core', version
+  s.add_dependency 'spree_auth', version
+  s.add_dependency 'spree_api', version
+  s.add_dependency 'spree_dash', version
+  s.add_dependency 'spree_sample', version
+  s.add_dependency 'spree_promo', version
+  s.add_dependency 'spree_cmd', version
 end

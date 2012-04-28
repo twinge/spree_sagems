@@ -3,10 +3,10 @@
 Devise.setup do |config|
   # ==> Mailer Configuration
   # Configure the e-mail address which will be shown in DeviseMailer.
-  config.mailer_sender = "please-change-me@config-initializers-devise.com"
+  config.mailer_sender = 'please-change-me@config-initializers-devise.com'
 
   # Configure the class responsible to send e-mails.
-  config.mailer = "UserMailer"
+  config.mailer = 'Spree::UserMailer'
 
   # ==> ORM configuration
   # Load and configure the ORM. Supports :active_record (default) and
@@ -32,7 +32,7 @@ Devise.setup do |config|
   #config.http_authenticatable_on_xhr = false
 
   # The realm used in Http Basic Authentication
-  config.http_authentication_realm = "Spree Application"
+  config.http_authentication_realm = 'Spree Application'
 
   # ==> Configuration for :database_authenticatable
   # For bcrypt, this is the cost for hashing the password and defaults to 10. If
@@ -40,7 +40,7 @@ Devise.setup do |config|
   config.stretches = 20
 
   # Setup a pepper to generate the encrypted password.
-  config.pepper = "0bfa9e2cb4a5efd0d976518a3d82e345060547913d2fd1dd2f32b0c8dbbbb5d3dc20b86d0fed31aca9513bccdf51643700ea277d9c64d9ce8ef886bf39293453"
+  config.pepper = '0bfa9e2cb4a5efd0d976518a3d82e345060547913d2fd1dd2f32b0c8dbbbb5d3dc20b86d0fed31aca9513bccdf51643700ea277d9c64d9ce8ef886bf39293453'
 
   # ==> Configuration for :confirmable
   # The time you want to give your user to confirm his account. During this time
@@ -98,8 +98,8 @@ Devise.setup do |config|
   config.token_authentication_key = :auth_token
 
   # ==> Scopes configuration
-  # Turn scoped views on. Before rendering "sessions/new", it will first check for
-  # "users/sessions/new". It's turned off by default because it's slower if you
+  # Turn scoped views on. Before rendering 'sessions/new', it will first check for
+  # 'users/sessions/new'. It's turned off by default because it's slower if you
   # are using only default views.
   # config.scoped_views = true
 
@@ -133,4 +133,9 @@ Devise.setup do |config|
   #   end
   #   manager.default_strategies(:scope => :user).unshift :twitter_oauth
   # end
+  #
+  # Time interval you can reset your password with a reset password key.
+  # Don't put a too small interval or your users won't have the time to
+  # change their passwords.
+  config.reset_password_within = 6.hours
 end

@@ -1,16 +1,29 @@
-Spree API
-=========
-Manage orders,shipments etc. with a simple REST API
+# Api
 
-See [RESTful API guide](http://spreecommerce.com/documentation/rest.html) for more details.
+TODO: Write a gem description
 
-Testing
-=======
+## Installation
 
-Create the test site
+Add this line to your application's Gemfile:
 
-    rake test_app
+    gem 'api'
 
-Run the tests
+And then execute:
 
-    rake spec
+    $ bundle
+
+Or install it yourself as:
+
+    $ gem install api
+
+## Usage
+
+TODO: Write usage instructions here
+
+## Contributing
+
+1. Fork it
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Commit your changes (`git commit -am 'Added some feature'`)
+4. Push to the branch (`git push origin my-new-feature`)
+5. Create new Pull Request

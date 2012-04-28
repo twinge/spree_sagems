@@ -1,9 +1,17 @@
-require File.dirname(__FILE__) + '/../spec_helper'
+require 'spec_helper'
 
-describe User do
+describe Spree::User do
 
   context "validation" do
     it { should have_valid_factory(:user) }
+  end
+
+  context "Core::UserBanners" do
+    it "save dismissed banners" do
+      user = Factory(:user)
+      user.dismiss_banner(:test_banner)
+      user.dismissed_banner?(:test_banner).should be_true
+    end
   end
 
 end

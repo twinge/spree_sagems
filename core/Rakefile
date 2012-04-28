@@ -2,47 +2,28 @@ require 'rubygems'
 require 'rake'
 require 'rake/testtask'
 require 'rake/packagetask'
-require 'rake/gempackagetask'
+require 'rubygems/package_task'
+require 'rspec/core/rake_task'
+require 'spree/core/testing_support/common_rake'
+
+Bundler::GemHelper.install_tasks
+RSpec::Core::RakeTask.new
 
 spec = eval(File.read('spree_core.gemspec'))
-Rake::GemPackageTask.new(spec) do |p|
+Gem::PackageTask.new(spec) do |p|
   p.gem_spec = spec
 end
 
 desc "Release to gemcutter"
-task :release => :package do
-  require 'rake/gemcutter'
-  Rake::Gemcutter::Tasks.new(spec).define
-  Rake::Task['gem:push'].invoke
+task :release do
+  version = File.read(File.expand_path("../../SPREE_VERSION", __FILE__)).strip
+  cmd = "cd pkg && gem push spree_core-#{version}.gem"; puts cmd; system cmd
 end
 
-desc "Default Task"
-task :default => [:spec, :cucumber ]
+task :default => :spec
 
-desc "Regenerates a rails 3 app for testing"
+desc "Generates a dummy app for testing"
 task :test_app do
-  require '../lib/generators/spree/test_app_generator'
-  class CoreTestAppGenerator < Spree::Generators::TestAppGenerator
-
-    def install_spree_core
-      inside "test_app" do
-        run 'rake spree_core:install'
-      end
-    end
-
-    def migrate_db
-      run_migrations
-    end
-
-    protected
-    def full_path_for_local_gems
-      <<-gems
-gem 'spree_core', :path => \'#{File.dirname(__FILE__)}\'
-      gems
-    end
-  end
-  CoreTestAppGenerator.start
+  ENV['LIB_NAME'] = 'spree/core'
+  Rake::Task['common:test_app'].invoke
 end
-
-ENV['SPREE_GEM_PATH'] = __FILE__
-require File.expand_path("../../core/lib/tasks/common", __FILE__)

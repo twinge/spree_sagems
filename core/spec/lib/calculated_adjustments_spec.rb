@@ -1,25 +1,20 @@
-require File.dirname(__FILE__) + '/../spec_helper'
+require 'spec_helper'
 
 # Its pretty difficult to test this module in isolation b/c it needs to work in conjunction with an actual class that
 # extends ActiveRecord::Base and has a corresponding table in the database.  So we'll just test it using Order and
 # ShippingMethod instead since those classes are including the module.
-describe Spree::CalculatedAdjustments do
+describe Spree::Core::CalculatedAdjustments do
 
-  let(:calculator) { mock_model(Calculator, :compute => 10, :[]= => nil) }
+  let(:calculator) { mock_model(Spree::Calculator, :compute => 10, :[]= => nil) }
 
   it "should add has_one :calculator relationship" do
-    assert ShippingMethod.reflect_on_all_associations(:has_one).map(&:name).include?(:calculator)
-  end
-  it "should be able to register calculators" do
-    expect {
-      TaxRate.register_calculator(calculator)
-    }.to change { TaxRate.calculators.count }.by 1
+    assert Spree::ShippingMethod.reflect_on_all_associations(:has_one).map(&:name).include?(:calculator)
   end
 
-  let(:tax_rate) { TaxRate.new(:calculator => calculator) }
+  let(:tax_rate) { Spree::TaxRate.new({:calculator => calculator}, :without_protection => true) }
 
   context "#create_adjustment and its resulting adjustment" do
-    let(:order) { Order.create }
+    let(:order) { Spree::Order.create }
     let(:target) { order }
 
     it "should be associated with the target" do
@@ -38,6 +33,26 @@ describe Spree::CalculatedAdjustments do
     it "should be mandatory if true is supplied for that parameter" do
       adjustment = tax_rate.create_adjustment("foo", target, order, true)
       adjustment.should be_mandatory
+    end
+
+    context "when the calculator returns 0" do
+      before { calculator.stub :compute => 0 }
+
+      context "when adjustment is mandatory" do
+        before { tax_rate.create_adjustment("foo", target, order, true) }
+
+        it "should create an adjustment" do
+          Spree::Adjustment.count.should == 1
+        end
+      end
+
+      context "when adjustment is not mandatory" do
+        before { tax_rate.create_adjustment("foo", target, order, false) }
+
+        it "should not create an adjustment" do
+          Spree::Adjustment.count.should == 0
+        end
+      end
     end
 
   end

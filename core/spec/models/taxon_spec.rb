@@ -1,7 +1,9 @@
-require File.dirname(__FILE__) + '/../spec_helper'
+# coding: UTF-8
 
-describe Taxon do
-  let(:taxon) { Taxon.new(:name => "Ruby on Rails") }
+require 'spec_helper'
+
+describe Spree::Taxon do
+  let(:taxon) { Spree::Taxon.new(:name => "Ruby on Rails") }
 
   context "validation" do
     it { should have_valid_factory(:taxon) }
@@ -14,10 +16,16 @@ describe Taxon do
       taxon.permalink.should == "ruby-on-rails"
     end
 
+    it "should support Chinese characters" do
+      taxon.name = "你好"
+      taxon.set_permalink
+      taxon.permalink.should == 'ni-hao'
+    end
+
     context "with parent taxon" do
       before do
         taxon.stub(:parent_id => 123)
-        Taxon.should_receive(:find).with(123).and_return(mock_model(Taxon, :permalink => "brands"))
+        Spree::Taxon.should_receive(:find).with(123).and_return(mock_model(Spree::Taxon, :permalink => "brands"))
       end
 
       it "should set permalink correctly when taxon has parent" do
@@ -29,6 +37,12 @@ describe Taxon do
         taxon.permalink = "b/rubyonrails"
         taxon.set_permalink
         taxon.permalink.should == "brands/rubyonrails"
+      end
+
+      it "should support Chinese characters" do
+        taxon.name = "我"
+        taxon.set_permalink
+        taxon.permalink.should == "brands/wo"
       end
 
     end

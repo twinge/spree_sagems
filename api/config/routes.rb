@@ -1,36 +1,45 @@
-Rails.application.routes.draw do
-  namespace :admin do
-    resources :users do
-      member do
-        put :generate_api_key
-        put :clear_api_key
-      end
-    end
-  end
-
+Spree::Core::Engine.routes.prepend do
   namespace :api do
-    resources :shipments, :except => [:new,:edit] do
-      put :event, :on => :member
-      resources :inventory_units, :except => [:new,:edit] do
-        put :event, :on => :member
-      end
-    end
-    resources :orders, :except => [:new,:edit] do
-      put :event, :on => :member
-      resources :shipments, :except => [:new,:edit]
-      resources :line_items, :except => [:new,:edit]
-      resources :inventory_units, :except => [:new,:edit] do
-        put :event, :on => :member
-      end
-    end
-    resources :inventory_units, :except => [:new,:edit] do
-      put :event, :on => :member
-    end
-    resources :products, :except => [:new,:edit]
-    resources :countries, :except => [:new,:edit] do
-      resources :states, :except => [:new,:edit]
-    end
-    resources :states, :except => [:new,:edit]
-  end
+    scope :module => :v1 do
+      resources :products do
+        collection do
+          get :search
+        end
 
+        resources :variants
+        resources :images
+      end
+
+      resources :variants, :only => [:index] do
+        resources :images
+      end
+
+      resources :orders do
+        member do
+          put :address
+          put :delivery
+          put :cancel
+        end
+
+        resources :line_items
+        resources :payments do
+          member do
+            put :authorize
+            put :purchase
+            put :void
+            put :credit
+          end
+        end
+
+        resources :shipments do
+          member do
+            put :ready
+            put :ship
+          end
+        end
+      end
+
+      resources :countries, :only => [:index, :show]
+    end
+  end
 end
