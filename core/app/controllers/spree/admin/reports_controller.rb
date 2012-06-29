@@ -1,6 +1,6 @@
 module Spree
   module Admin
-    class ReportsController < BaseController
+    class ReportsController < Spree::Admin::BaseController
       before_filter :load_data
       respond_to :html
 
@@ -32,9 +32,9 @@ module Spree
           params[:q][:completed_at_not_null] = false
         end
 
-        params[:q][:meta_sort] ||= "created_at.desc"
+        params[:q][:s] ||= "created_at desc"
 
-        @search = Order.complete.search(params[:q])
+        @search = Order.complete.ransack(params[:q])
         @orders = @search.result
         @item_total = @orders.sum(:item_total)
         @adjustment_total = @orders.sum(:adjustment_total)

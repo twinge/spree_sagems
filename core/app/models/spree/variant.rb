@@ -1,6 +1,7 @@
 module Spree
   class Variant < ActiveRecord::Base
-    belongs_to :product
+    belongs_to :product, :touch => true, :class_name => "Spree::Product"
+
     delegate_belongs_to :product, :name, :description, :permalink, :available_on,
                         :tax_category_id, :shipping_category_id, :meta_description,
                         :meta_keywords, :tax_category
@@ -63,6 +64,12 @@ module Spree
       end
     end
 
+    # and cost_price
+    def cost_price=(price)
+      if price.present?
+        self[:cost_price] = price.to_s.gsub(/[^0-9\.-]/, '').to_f
+      end
+    end
 
     # returns number of units currently on backorder for this variant.
     def on_backorder

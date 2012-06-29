@@ -50,7 +50,14 @@ module Spree
         protect_from_connection_error do
           check_environment
 
-          response = payment_method.void(self.response_code, gateway_options)
+          if payment_method.payment_profiles_supported?
+            # Gateways supporting payment profiles will need access to creditcard object because this stores the payment profile information
+            # so supply the authorization itself as well as the creditcard, rather than just the authorization code
+            response = payment_method.void(self.response_code, source, gateway_options)
+          else
+            # Standard ActiveMerchant void usage
+            response = payment_method.void(self.response_code, gateway_options)
+          end
           record_response(response)
 
           if response.success?
@@ -129,8 +136,10 @@ module Spree
       record_response(response)
 
       if response.success?
-        self.response_code = response.authorization
-        self.avs_response = response.avs_result['code']
+        unless response.authorization.nil?
+          self.response_code = response.authorization
+          self.avs_response = response.avs_result['code']
+        end
         self.send("#{success_state}!")
       else
         self.send("#{failure_state}!")
@@ -145,12 +154,14 @@ module Spree
     def gateway_options
       options = { :email    => order.email,
                   :customer => order.email,
-                  :ip       => order.ip_address,
+                  :ip       => '192.168.1.100', # TODO: Use real IP address
                   :order_id => order.number }
 
       options.merge!({ :shipping => order.ship_total * 100,
                        :tax      => order.tax_total * 100,
                        :subtotal => order.item_total * 100 })
+      
+      options.merge!({ :currency => payment_method.preferences[:currency_code] }) if payment_method && payment_method.preferences[:currency_code]
 
       options.merge({ :billing_address  => order.bill_address.try(:active_merchant_hash),
                       :shipping_address => order.ship_address.try(:active_merchant_hash) })

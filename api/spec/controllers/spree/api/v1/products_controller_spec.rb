@@ -48,6 +48,7 @@ module Spree
 
       it "gets a single product" do
         product.master.images.create!(:attachment => image("thinking-cat.jpg"))
+        product.set_property("spree", "rocks")
         api_get :show, :id => product.to_param
         json_response.should have_attributes(attributes)
         product_json = json_response["product"]
@@ -60,6 +61,10 @@ module Spree
                                                             :attachment_width,
                                                             :attachment_height,
                                                             :attachment_content_type])
+
+        product_json["product_properties"].first.should have_attributes([:value,
+                                                                         :product_id,
+                                                                         :property_name])
       end
 
 
@@ -125,6 +130,23 @@ module Spree
         json_response["count"].should == 2
         json_response["current_page"].should == 1
         json_response["pages"].should == 1
+      end
+
+      # Regression test for #1626
+      context "deleted products" do
+        before do
+          create(:product, :deleted_at => Time.now)
+        end
+
+        it "does not include deleted products" do
+          api_get :index
+          json_response["products"].count.should == 2
+        end
+
+        it "can include deleted products" do
+          api_get :index, :show_deleted => 1
+          json_response["products"].count.should == 3
+        end
       end
 
       it "can create a new product" do

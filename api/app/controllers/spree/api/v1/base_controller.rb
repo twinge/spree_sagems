@@ -59,7 +59,7 @@ module Spree
 
         def find_product(id)
           begin
-            product_scope.find_by_permalink!(id)
+            product_scope.find_by_permalink!(id.to_s)
           rescue ActiveRecord::RecordNotFound
             product_scope.find(id)
           end
@@ -68,9 +68,13 @@ module Spree
         def product_scope
           if current_api_user.has_role?("admin")
             scope = Product
+            unless params[:show_deleted]
+              scope = scope.not_deleted
+            end
           else
             scope = Product.active
           end
+
           scope.includes(:master)
         end
 

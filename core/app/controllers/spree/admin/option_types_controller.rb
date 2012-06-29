@@ -2,6 +2,7 @@ module Spree
   module Admin
     class OptionTypesController < ResourceController
       before_filter :load_product, :only => [:select, :selected, :available, :remove]
+      before_filter :setup_new_option_value, :only => [:edit]
 
       def available
         set_available_option_types
@@ -30,6 +31,17 @@ module Spree
         end
       end
 
+      def update_values_positions
+        params[:positions].each do |id, index|
+          OptionValue.where(:id => id).update_all(:position => index)
+        end
+
+        respond_to do |format|
+          format.html { redirect_to admin_product_variants_url(params[:product_id]) }
+          format.js  { render :text => 'Ok' }
+        end
+      end
+
       # AJAX method for selecting an existing option type and associating with the current product
       def select
         @product.option_types << OptionType.find(params[:id])
@@ -52,6 +64,10 @@ module Spree
       private
         def load_product
           @product = Product.find_by_param!(params[:product_id])
+        end
+
+        def setup_new_option_value
+          @option_type.option_values.build if @option_type.option_values.empty?
         end
   
         def set_available_option_types     

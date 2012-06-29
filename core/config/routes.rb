@@ -11,9 +11,9 @@ Spree::Core::Engine.routes.draw do
   resources :states, :only => :index
 
   # non-restful checkout stuff
-  match '/checkout/update/:state', :to => 'checkout#update', :as => :update_checkout
-  match '/checkout/:state', :to => 'checkout#edit', :as => :checkout_state
-  match '/checkout', :to => 'checkout#edit', :state => 'address', :as => :checkout
+  match '/checkout/update/:state', :to => 'checkout#update', :as => :update_checkout, :via => :put
+  match '/checkout/:state', :to => 'checkout#edit', :as => :checkout_state, :via => :get
+  match '/checkout', :to => 'checkout#edit', :state => 'address', :as => :checkout, :via => :get
 
   resources :orders do
     post :populate, :on => :collection
@@ -109,6 +109,7 @@ Spree::Core::Engine.routes.draw do
     resources :option_types do
       collection do
         post :update_positions
+        post :update_values_positions
       end
     end
 
@@ -182,7 +183,6 @@ Spree::Core::Engine.routes.draw do
       end
     end
 
-    resources :shipments
     resources :shipping_methods
     resources :shipping_categories
     resources :tax_rates

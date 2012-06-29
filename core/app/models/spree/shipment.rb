@@ -2,9 +2,9 @@ require 'ostruct'
 
 module Spree
   class Shipment < ActiveRecord::Base
-    belongs_to :order
-    belongs_to :shipping_method
-    belongs_to :address
+    belongs_to :order, :class_name => "Spree::Order"
+    belongs_to :shipping_method, :class_name => "Spree::ShippingMethod"
+    belongs_to :address, :class_name => "Spree::Address"
     has_many :state_changes, :as => :stateful
     has_many :inventory_units, :dependent => :nullify
     has_one :adjustment, :as => :source, :dependent => :destroy
@@ -14,7 +14,7 @@ module Spree
 
     attr_accessor :special_instructions
 
-    attr_accessible :order, :state, :shipping_method, :special_instructions,
+    attr_accessible :order, :shipping_method, :special_instructions,
                     :shipping_method_id, :tracking, :address, :inventory_units
 
     accepts_nested_attributes_for :address
@@ -125,7 +125,7 @@ module Spree
       def determine_state(order)
         return 'pending' if self.inventory_units.any? { |unit| unit.backordered? }
         return 'shipped' if state == 'shipped'
-        order.payment_state == 'balance_due' ? 'pending' : 'ready'
+        order.paid? ? 'ready' : 'pending'
       end
 
       # Determines whether or not inventory units should be associated with the shipment.  This is always +false+ when

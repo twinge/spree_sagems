@@ -34,6 +34,23 @@ module Spree
       assert_unauthorized!
     end
 
+    it "cannot cancel an order that doesn't belong to them" do
+      order.update_attribute(:completed_at, Time.now)
+      order.update_attribute(:shipment_state, "ready")
+      api_put :cancel, :id => order.to_param
+      assert_unauthorized!
+    end
+
+    it "cannot add address information to an order that doesn't belong to them" do
+      api_put :address, :id => order.to_param
+      assert_unauthorized!
+    end
+
+    it "cannot change delivery information on an order that doesn't belong to them" do
+      api_put :delivery, :id => order.to_param
+      assert_unauthorized!
+    end
+
     it "can create an order" do
       variant = create(:variant)
       api_post :create, :order => { :line_items => [{ :variant_id => variant.to_param, :quantity => 5 }] }
@@ -47,6 +64,7 @@ module Spree
 
     context "working with an order" do
       before do
+        Order.any_instance.stub :user => current_api_user
         create(:payment_method)
         order.next # Switch from cart to address
         order.ship_address.should be_nil
@@ -127,6 +145,12 @@ module Spree
             response.status.should == 422
             json_response["errors"].should include("Invalid shipping method specified.")
           end
+        end
+
+        it "can empty an order" do
+          api_put :empty, :id => order.to_param
+          response.status.should == 200
+          order.reload.line_items.should be_empty
         end
       end
     end

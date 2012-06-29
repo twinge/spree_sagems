@@ -109,9 +109,9 @@ describe Spree::Product do
           @product3 = create(:product, :name => 'foo')
         end
         it "should have valid permalink" do
-          @product1.permalink.should == 'foo'
-          @product2.permalink.should == 'foo-1'
-          @product3.permalink.should == 'foo-2'
+          @product1.permalink.should == 'foo-1'
+          @product2.permalink.should == 'foo-2'
+          @product3.permalink.should == 'foo-3'
         end
       end
 
@@ -123,7 +123,7 @@ describe Spree::Product do
           end
         end
         it "should have valid permalink" do
-          @products[11].permalink.should == 'foo-11'
+          @products[11].permalink.should == 'foo-12'
         end
       end
 
@@ -153,21 +153,6 @@ describe Spree::Product do
     end
   end
 
-  context "scopes" do
-    context ".group_by_products_id.count" do
-      let(:product) { create(:product) }
-      it 'produces a properly formed ordered-hash key' do
-        expected_key = (ActiveRecord::Base.connection.adapter_name == 'PostgreSQL') ?
-          Spree::Product.column_names.map{|col_name| product.send(col_name)} :
-          product.id
-        count_key = Spree::Product.group_by_products_id.count.keys.first
-        [expected_key, count_key].each{|val| val.map!{|e| e.is_a?(Time) ? e.strftime("%Y-%m-%d %H:%M:%S") : e} if val.respond_to?(:map!)}
-        count_key.should == expected_key
-      end
-    end
-
-  end
-
   context "properties" do
     it "should properly assign properties" do
       product = FactoryGirl.create :product
@@ -175,12 +160,12 @@ describe Spree::Product do
       product.property('the_prop').should == 'value1'
 
       product.set_property('the_prop', 'value2')
-      product.property('the_prop').should == 'value2'      
+      product.property('the_prop').should == 'value2'
     end
 
     it "should not create duplicate properties when set_property is called" do
       product = FactoryGirl.create :product
-      
+
       lambda {
         product.set_property('the_prop', 'value2')
         product.save
@@ -291,23 +276,6 @@ describe Spree::Product do
       end
       specify { product.has_stock?.should be_true }
     end
-  end
-
-  context '#effective_tax_rate' do
-    let(:product) { stub_model(Spree::Product) }
-
-    it 'should check tax category for applicable rates' do
-      tax_category = double("Tax Category")
-      product.stub :tax_category => tax_category
-      tax_category.should_receive(:effective_amount)
-      product.effective_tax_rate
-    end
-
-    it 'should return default tax rate when no tax category is defined' do
-      product.stub :tax_category => nil
-      product.effective_tax_rate.should == Spree::TaxRate.default
-    end
-
   end
 
   context "#images" do

@@ -36,10 +36,8 @@ module Spree
 
           def add_search_scopes(base_scope)
             search.each do |name, scope_attribute|
-              next if name.to_s =~ /eval|send|system/
-
-              scope_name = name.intern
-              if base_scope.respond_to? scope_name
+              scope_name = name.to_sym
+              if base_scope.respond_to?(:search_scopes) && base_scope.search_scopes.include?(scope_name.to_sym)
                 base_scope = base_scope.send(scope_name, *scope_attribute)
               else
                 base_scope = base_scope.merge(Spree::Product.search({scope_name => scope_attribute}).result)
@@ -61,18 +59,6 @@ module Spree
             per_page = params[:per_page].to_i
             @properties[:per_page] = per_page > 0 ? per_page : Spree::Config[:products_per_page]
             @properties[:page] = (params[:page].to_i <= 0) ? 1 : params[:page].to_i
-
-            # if !params[:order_by_price].blank?
-            #   @product_group = Spree::ProductGroup.new.from_route([params[:order_by_price] + '_by_master_price'])
-            # elsif params[:product_group_name]
-            #   @cached_product_group = Spree::ProductGroup.find_by_permalink(params[:product_group_name])
-            #   @product_group = Spree::ProductGroup.new
-            # elsif params[:product_group_query]
-            #   @product_group = Spree::ProductGroup.new.from_route(params[:product_group_query].split('/'))
-            # else
-            #   @product_group = Spree::ProductGroup.new
-            # end
-            # @product_group = @product_group.from_search(params[:search]) if params[:search]
           end
       end
     end

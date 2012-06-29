@@ -6,7 +6,7 @@ module Spree
                     :ship_address, :bill_address, :line_items_attributes, :number,
                     :shipping_method_id, :email, :use_billing, :special_instructions
 
-    belongs_to :user
+    belongs_to :user, :class_name => "Spree::User"
 
     belongs_to :bill_address, :foreign_key => 'bill_address_id', :class_name => 'Spree::Address'
     alias_method :billing_address, :bill_address
@@ -16,7 +16,7 @@ module Spree
     alias_method :shipping_address, :ship_address
     alias_method :shipping_address=, :ship_address=
 
-    belongs_to :shipping_method
+    belongs_to :shipping_method, :class_name => "Spree::ShippingMethod"
 
     has_many :state_changes, :as => :stateful
     has_many :line_items, :dependent => :destroy
@@ -24,7 +24,7 @@ module Spree
     has_many :payments, :dependent => :destroy
     has_many :shipments, :dependent => :destroy
     has_many :return_authorizations, :dependent => :destroy
-    has_many :adjustments, :as => :adjustable, :dependent => :destroy
+    has_many :adjustments, :as => :adjustable, :dependent => :destroy, :order => "created_at ASC"
 
     accepts_nested_attributes_for :line_items
     accepts_nested_attributes_for :bill_address
@@ -42,18 +42,6 @@ module Spree
     validates :email, :presence => true, :email => true, :if => :require_email
     validate :has_available_shipment
     validate :has_available_payment
-
-    #delegate :ip_address, :to => :checkout
-    def ip_address
-      '192.168.1.100'
-    end
-
-    scope :by_number, lambda { |number| where(:number => number) }
-    scope :between, lambda { |*dates| where('created_at BETWEEN ? AND ?', dates.first.to_date, dates.last.to_date) }
-    scope :by_customer, lambda { |customer| joins(:user).where("#{Spree::User.table_name}.email = ?", customer) }
-    scope :by_state, lambda { |state| where(:state => state) }
-    scope :complete, where('completed_at IS NOT NULL')
-    scope :incomplete, where(:completed_at => nil)
 
     make_permalink :field => :number
 
@@ -108,6 +96,30 @@ module Spree
       after_transition :to => 'resumed',  :do => :after_resume
       after_transition :to => 'canceled', :do => :after_cancel
 
+    end
+
+    def self.by_number(number)
+      where(:number => number)
+    end
+
+    def self.between(start_date, end_date)
+      where(:created_at => start_date..end_date)
+    end
+
+    def self.by_customer(customer)
+      joins(:user).where("#{Spree::User.table_name}.email" => customer)
+    end
+
+    def self.by_state(state)
+      where(:state => state)
+    end
+
+    def self.complete
+      where('completed_at IS NOT NULL')
+    end
+
+    def self.incomplete
+      where(:completed_at => nil)
     end
 
     # Use this method in other gems that wish to register their own custom logic that should be called after Order#updat
@@ -284,6 +296,7 @@ module Spree
         current_item.update_attribute(field[:name].gsub(' ', '_').downcase, value)
       end
 
+      self.reload
       current_item
     end
 
@@ -400,10 +413,6 @@ module Spree
       ShippingMethod.all_available(self, display_on)
     end
 
-    def available_payment_methods(display_on = nil)
-      PaymentMethod.all(display_on)
-    end
-
     def rate_hash
       @rate_hash ||= available_shipping_methods(:front_end).collect do |ship_method|
         next unless cost = ship_method.calculator.compute(self)
@@ -412,6 +421,10 @@ module Spree
                           :name => ship_method.name,
                           :cost => cost)
       end.compact.sort_by { |r| r.cost }
+    end
+
+    def paid?
+      payment_state == 'paid'
     end
 
     def payment
@@ -444,6 +457,13 @@ module Spree
 
     def insufficient_stock_lines
       line_items.select &:insufficient_stock?
+    end
+
+    def merge!(order)
+      order.line_items.each do |line_item|
+        self.add_variant(line_item.variant, line_item.quantity)
+      end
+      order.destroy
     end
 
     private

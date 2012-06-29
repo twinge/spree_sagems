@@ -7,7 +7,7 @@ module ActionController
       if collector = retrieve_collector_from_mimes(&block)
         options = resources.size == 1 ? {} : resources.extract_options!
 
-        if defined_response = collector.response and Spree::BaseController.spree_responders.empty?
+        if defined_response = collector.response and !Spree::BaseController.spree_responders.keys.include?(self.class.to_s.to_sym)
           if action = options.delete(:action)
             render :action => action
           else
@@ -59,7 +59,7 @@ module Spree
               options = {action_name.to_sym => {format_name.to_sym => {:success => format_value}}}
             end
 
-            self.spree_responders.rmerge!(self.name.intern => options)
+            self.spree_responders.rmerge!(self.name.to_sym => options)
           end
         end
       end

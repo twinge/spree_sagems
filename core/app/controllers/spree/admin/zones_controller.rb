@@ -12,8 +12,8 @@ module Spree
 
         def collection
           params[:q] ||= {}
-          params[:q][:meta_sort] ||= "ascend_by_name"
-          @search = super.search(params[:q])
+          params[:q][:s] ||= "ascend_by_name"
+          @search = super.ransack(params[:q])
           @zones = @search.result.page(params[:page]).per(Spree::Config[:orders_per_page])
         end
 

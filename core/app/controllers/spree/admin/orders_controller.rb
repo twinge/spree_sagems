@@ -12,7 +12,7 @@ module Spree
         params[:q] ||= {}
         params[:q][:completed_at_not_null] ||= '1' if Spree::Config[:show_only_complete_orders_by_default]
         @show_only_completed = params[:q][:completed_at_not_null].present?
-        params[:q][:meta_sort] ||= @show_only_completed ? 'completed_at.desc' : 'created_at.desc'
+        params[:q][:s] ||= @show_only_completed ? 'completed_at desc' : 'created_at desc'
 
         if !params[:q][:created_at_gt].blank?
           params[:q][:created_at_gt] = Time.zone.parse(params[:q][:created_at_gt]).beginning_of_day rescue ""
@@ -27,7 +27,7 @@ module Spree
           params[:q][:completed_at_lt] = params[:q].delete(:created_at_lt)
         end
 
-        @search = Order.search(params[:q])
+        @search = Order.ransack(params[:q])
         @orders = @search.result.includes([:user, :shipments, :payments]).page(params[:page]).per(Spree::Config[:orders_per_page])
         respond_with(@orders)
       end
@@ -50,8 +50,10 @@ module Spree
         if @order.update_attributes(params[:order]) && @order.line_items.present?
           @order.update!
           unless @order.complete?
-
+            # Jump to next step if order is not complete.
+            return_path = admin_order_customer_path(@order)
           else
+            # Otherwise, go back to first page since all necessary information has been filled out.
             return_path = admin_order_path(@order)
           end
         else

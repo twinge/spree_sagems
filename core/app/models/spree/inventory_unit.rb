@@ -1,9 +1,9 @@
 module Spree
   class InventoryUnit < ActiveRecord::Base
-    belongs_to :variant
-    belongs_to :order
-    belongs_to :shipment
-    belongs_to :return_authorization
+    belongs_to :variant, :class_name => "Spree::Variant"
+    belongs_to :order, :class_name => "Spree::Order"
+    belongs_to :shipment, :class_name => "Spree::Shipment"
+    belongs_to :return_authorization, :class_name => "Spree::ReturnAuthorization"
 
     scope :backorder, where(:state => 'backordered')
 
@@ -81,7 +81,9 @@ module Spree
         variant_units = order.inventory_units.group_by(&:variant_id)
         return unless variant_units.include? variant.id
 
-        variant_units = variant_units[variant.id].sort_by(&:state)
+        variant_units = variant_units[variant.id].reject do |variant_unit|
+          variant_unit.state == 'shipped'
+        end.sort_by(&:state)
 
         quantity.times do
           inventory_unit = variant_units.shift
